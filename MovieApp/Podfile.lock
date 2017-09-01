@@ -1,0 +1,24 @@
+PODS:
+  - ACProgressHUD-Swift (1.2)
+  - Kingfisher (3.10.2)
+  - ObjectMapper (2.2.7)
+  - ReachabilitySwift (3)
+  - Toast (2.4)
+
+DEPENDENCIES:
+  - ACProgressHUD-Swift (~> 1.2)
+  - Kingfisher
+  - ObjectMapper (~> 2.2)
+  - ReachabilitySwift
+  - Toast (~> 2.4)
+
+SPEC CHECKSUMS:
+  ACProgressHUD-Swift: a08e699b2d8b3f3528d77c021ad6a326bc16f76d
+  Kingfisher: 7297492bf8cec9b2e2dee3519f2219948580d98e
+  ObjectMapper: 65abcfd9a61cf7396cbd14a4fb22fddfcc46577e
+  ReachabilitySwift: f5b9bb30a0777fac8f09ce8b067e32faeb29bb64
+  Toast: 0773b8fc0e97352ca6054517bec7ebdd4110029d
+
+PODFILE CHECKSUM: d690490612eeb96a95a60035fe7da24fd6c5738b
+
+COCOAPODS: 1.1.1
