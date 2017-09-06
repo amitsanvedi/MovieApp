@@ -14,11 +14,18 @@ class MovieViewAllViewController: UIViewController , UICollectionViewDataSource 
     //MARK: - Outlet.
     @IBOutlet weak var collectionView : UICollectionView!
     //MARK: - Variables.
-    var pageCountNowPlaying : Int = 2
-    var pageCountPopular    : Int = 2
-    var pageCountTopRated   : Int = 2
+    var pageCount           : Int = 2
     var movieTypeTag        : Int!
-    var movieData           = [AnyObject]()
+    var movieData           = [AnyObject]() {
+        didSet{
+            DispatchQueue.main.async() {
+                guard let collectionView = self.collectionView else {
+                    return
+                }
+                collectionView.reloadData()
+            }
+        }
+    }
     var totalPageCount      : Int!
     
     
@@ -41,15 +48,15 @@ class MovieViewAllViewController: UIViewController , UICollectionViewDataSource 
         
         switch self.movieTypeTag {
         case 0:
-            self.navigationItem.title = "Top Rated"
+            self.navigationItem.title = TOP_RATED
             self.loadTopRatedMovie()
             break
         case 1 :
-            self.navigationItem.title = "Now Playing"
+            self.navigationItem.title = NOW_PLAYING
             self.loadNowPlayingMovie()
             break
         case 2 :
-            self.navigationItem.title = "Popular"
+            self.navigationItem.title = POPULAR
             self.loadPopularData()
             break
         default:
@@ -60,14 +67,13 @@ class MovieViewAllViewController: UIViewController , UICollectionViewDataSource 
     /**
      This method is used for filtering an movie array which contain greater then 500 votes.
      */
-    func filterTopRatedMovie() {
+    func filterTopRatedMovie(resultData : [AnyObject]) {
         
-        let movieArray : [MovieResultViewModel] = self.movieData as! [MovieResultViewModel]
-        let filterArray = movieArray.filter { $0.vote_count! > 500 }
-        let sortedArray = filterArray.sorted { $0.vote_count! > $1.vote_count! }
-        self.movieData = sortedArray
-        DispatchQueue.main.async() {
-            self.collectionView.reloadData()
+        let movieArray : [MovieResultViewModel] = resultData as! [MovieResultViewModel]
+        let filterArray = movieArray.filter { $0.vote_count! > MIN_VOTE_COUNT }
+        
+        DispatchQueue.global(qos: .background).async {
+            self.movieData += filterArray as [AnyObject]
         }
     }
     
@@ -78,12 +84,10 @@ class MovieViewAllViewController: UIViewController , UICollectionViewDataSource 
      */
     func loadNowPlayingMovie() {
         
-        WebAPIManager.sharedWebAPIMAnager.doCallWebAPIForGetRequest(pageCount: pageCountNowPlaying, strType: "now_playing", success: { (obj) in
+        WebAPIManager.sharedWebAPIMAnager.doCallWebAPIForGetRequest(pageCount: self.pageCount, strType: WS_NOW_PLAYING, success: { (obj) in
             let movieData :  MovieViewModel = Mapper<MovieViewModel>().map(JSON: obj)!
             self.movieData += movieData.results as [AnyObject]
-            DispatchQueue.main.async() {
-                self.collectionView.reloadData()
-            }
+
         }) { (error) in
             DispatchQueue.main.async() {
                 WebAPIManager.sharedWebAPIMAnager.showTotstOnWindow(strMessage: (error?.localizedDescription)!)
@@ -96,10 +100,10 @@ class MovieViewAllViewController: UIViewController , UICollectionViewDataSource 
      */
     func loadTopRatedMovie(){
         
-        WebAPIManager.sharedWebAPIMAnager.doCallWebAPIForGetRequest(pageCount: pageCountTopRated, strType: "top_rated", success: { (obj) in
+        WebAPIManager.sharedWebAPIMAnager.doCallWebAPIForGetRequest(pageCount: self.pageCount, strType: WS_TOP_RATED, success: { (obj) in
             let movieData :  MovieViewModel  = Mapper<MovieViewModel>().map(JSON: obj)!
-            self.movieData += movieData.results as [AnyObject]
-            self.filterTopRatedMovie()
+           // self.movieData += movieData.results as [AnyObject]
+            self.filterTopRatedMovie(resultData : movieData.results as [AnyObject])
         }) { (error) in
             DispatchQueue.main.async() {
                 WebAPIManager.sharedWebAPIMAnager.showTotstOnWindow(strMessage: (error?.localizedDescription)!)
@@ -108,16 +112,13 @@ class MovieViewAllViewController: UIViewController , UICollectionViewDataSource 
     }
     
     /**
-     To consume the data from the server of popular movies this method is called. After getting the response from the server the data is populated to array using the parser class which make the model for Movie and feed the data to array which shows in the tableView after reload. .
+     To consume the data from the server of popular movies this method is called. After getting the response from the server the data is populated to array using the parser class which make the model for Movie and feed the data to array which shows in the tableView after reload .
      */
     func loadPopularData() {
         
-        WebAPIManager.sharedWebAPIMAnager.doCallWebAPIForGetRequest(pageCount: pageCountPopular, strType: "popular", success: { (obj) in
+        WebAPIManager.sharedWebAPIMAnager.doCallWebAPIForGetRequest(pageCount: self.pageCount, strType: WS_POPULAR, success: { (obj) in
             let movieData :  MovieViewModel = Mapper<MovieViewModel>().map(JSON: obj)!
             self.movieData += movieData.results as [AnyObject]
-            DispatchQueue.main.async() {
-                self.collectionView.reloadData()
-            }
         }) { (error) in
             
             DispatchQueue.main.async() {
@@ -125,30 +126,45 @@ class MovieViewAllViewController: UIViewController , UICollectionViewDataSource 
             }
         }
     }
+   
+    /**
+     This method will be used to Increase page count and decide load more method should be called or not.
+     */
     
-    
+    func isLoadMore () -> Bool{
+        
+        if self.pageCount != self.totalPageCount {
+            self.pageCount +=  1
+            return true
+        }
+        else{
+            return false
+        }
+    }
+
     
     //MARK: - Collection view delegate and Datasource methods
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int  {
+        
         return self.movieData.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell", for: indexPath) as! MovieCollectionViewCell
-        let movieModelData : MovieResultViewModel = self.movieData[indexPath.row] as! MovieResultViewModel
-        cell.doSetupDataOnMovieDetailCell(resultData: movieModelData)
-        
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ID_CELL, for: indexPath) as! MovieCollectionViewCell
+        if let movieModelData : MovieResultViewModel = self.movieData[indexPath.row] as? MovieResultViewModel {
+            cell.doSetupDataOnMovieDetailCell(resultData: movieModelData)
+        }
         return cell
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: UNIVERSAL_WIDTH/2 - 2 , height: 180 * HEIGHT_FACTOR);
+        return CGSize(width: UNIVERSAL_WIDTH/CELL_MARGIN - CELL_MARGIN , height: CELL_HEIGHT * HEIGHT_FACTOR);
     }
     
     func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
         
-        let view = collectionView.dequeueReusableSupplementaryView(ofKind: UICollectionElementKindSectionFooter, withReuseIdentifier: "footerView", for: indexPath as IndexPath)
+        let view = collectionView.dequeueReusableSupplementaryView(ofKind: UICollectionElementKindSectionFooter, withReuseIdentifier: ID_FOOTER, for: indexPath as IndexPath)
         let activityIndicator = view.viewWithTag(10) as! UIActivityIndicatorView!
         activityIndicator?.startAnimating()
         return view
@@ -158,35 +174,28 @@ class MovieViewAllViewController: UIViewController , UICollectionViewDataSource 
                          layout collectionViewLayout: UICollectionViewLayout,
                          referenceSizeForFooterInSection section: Int) -> CGSize
     {
-        if (self.totalPageCount == self.pageCountTopRated || self.totalPageCount == self.pageCountPopular || self.totalPageCount == self.pageCountNowPlaying) {
-            return CGSize.zero;
+        if (self.totalPageCount != self.pageCount) {
+            return CGSize(width : collectionView.bounds.width, height : CELL_FOOTER_HEIGHT);
         }else {
-            return CGSize(width : collectionView.bounds.width, height : 40);
+            return CGSize.zero;
         }
     }
     
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        let offsetY = scrollView.contentOffset.y
-        let contentHeight = scrollView.contentSize.height
-        
-        if offsetY > contentHeight - scrollView.frame.size.height {
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        if indexPath.row == (self.movieData.count-1) {
             switch self.movieTypeTag {
             case 0:
-                if self.pageCountTopRated != self.totalPageCount {
-                    self.pageCountTopRated = self.pageCountTopRated + 1
+                if (self.isLoadMore()) {
                     self.loadTopRatedMovie()
                 }
                 break
             case 1 :
-                
-                if self.pageCountNowPlaying != self.totalPageCount {
-                    self.pageCountNowPlaying = self.pageCountNowPlaying + 1
+                if (self.isLoadMore()) {
                     self.loadNowPlayingMovie()
                 }
                 break
             case 2 :
-                if self.pageCountPopular != self.totalPageCount {
-                    self.pageCountPopular = self.pageCountPopular + 1
+                if (self.isLoadMore()) {
                     self.loadPopularData()
                 }
                 break
@@ -195,4 +204,7 @@ class MovieViewAllViewController: UIViewController , UICollectionViewDataSource 
             }
         }
     }
+    
+    
+    
 }

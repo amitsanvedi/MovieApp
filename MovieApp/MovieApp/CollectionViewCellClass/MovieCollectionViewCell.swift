@@ -26,13 +26,15 @@ class MovieCollectionViewCell: UICollectionViewCell {
         
         self.lblMovieType.text = resultData.title
         self.lblMovieName.text = resultData.original_title
-        if resultData.poster_path != nil {
-            let posterPath = "\(Poster_Prefix)\(resultData.poster_path! as String)"
-            let resource = ImageResource(downloadURL: URL(string: posterPath)!, cacheKey:posterPath)
-            self.imgBanner.kf.setImage(with: resource, placeholder: #imageLiteral(resourceName: "placeHolder") , options: nil, progressBlock: nil, completionHandler: nil)
-        }else{
-            self.imgBanner.image = UIImage(named : "placeHolder.png")
+        
+        guard let posterSufix = resultData.poster_path else {
+            self.imgBanner.image = UIImage(named : PLACEHOLDER)
+            return
         }
+        let posterPath = "\(POSTER_IMAGE_PREFIX)\(posterSufix)"
+        let resource = ImageResource(downloadURL: URL(string: posterPath)!, cacheKey:posterPath)
+        self.imgBanner.kf.setImage(with: resource, placeholder: #imageLiteral(resourceName: "placeHolder") , options: nil, progressBlock: nil, completionHandler: nil)
+                
     }
     
     /**
@@ -42,13 +44,15 @@ class MovieCollectionViewCell: UICollectionViewCell {
     func doSetupDataOnMovieDetailCell (resultData : MovieResultViewModel){
         
         self.lblMovieType.text = resultData.title
-        if resultData.poster_path != nil {
-            let posterPath = "\(Poster_Prefix)\(resultData.poster_path! as String)"
-            let resource = ImageResource(downloadURL: URL(string: posterPath)!, cacheKey:posterPath)
-            self.imgBanner.kf.setImage(with: resource, placeholder: #imageLiteral(resourceName: "placeHolder") , options: nil, progressBlock: nil, completionHandler: nil)
-        }else{
-            self.imgBanner.image = UIImage(named : "placeHolder.png")
+        
+        guard let posterSufix = resultData.poster_path else {
+            self.imgBanner.image = UIImage(named : PLACEHOLDER)
+            return
         }
+        let posterPath = "\(POSTER_IMAGE_PREFIX)\(posterSufix)"
+        let resource = ImageResource(downloadURL: URL(string: posterPath)!, cacheKey:posterPath)
+        self.imgBanner.kf.setImage(with: resource, placeholder: #imageLiteral(resourceName: "placeHolder") , options: nil, progressBlock: nil, completionHandler: nil)
+        
         let strVoteCount =  String(describing: resultData.vote_count!)
         self.lblVoteCount.text = "Vote: \(strVoteCount  as String)"
         self.lblReleaseDate.text = resultData.release_date

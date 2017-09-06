@@ -33,7 +33,7 @@ class WebAPIManager: NSObject {
      */
     func doCallWebAPIForGetRequest(pageCount : Int , strType : String , success: @escaping (_ obj : [String: Any]) -> Void , failure: @escaping (_ error: NSError?) -> Void) {
         
-        let url = URL(string: "https://api.themoviedb.org/3/movie/\(strType)?page=\(pageCount)&language=en-US&api_key=\(API_KEY)")
+        let url = URL(string: "\(BASE_URL)\(strType)?page=\(pageCount)&language=en-US&api_key=\(API_KEY)")
         
         let task = URLSession.shared.dataTask(with: url!) { data, response, error in
             guard error == nil else {
@@ -42,7 +42,6 @@ class WebAPIManager: NSObject {
                 return
             }
             guard let data = data else {
-                print("Data is empty")
                 return
             }
             do {
@@ -50,7 +49,6 @@ class WebAPIManager: NSObject {
                     success(json)
                 }
             } catch {
-                print("Error deserializing JSON: \(error)")
                 failure(error as NSError?)
             }
         }
